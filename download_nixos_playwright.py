@@ -13,13 +13,17 @@ import urllib.error
 DOWNLOAD_DIR = os.path.join(os.path.expanduser("~"), "Desktop", "NixOS_Installer")
 ISO_PATH     = os.path.join(DOWNLOAD_DIR, "nixos-graphical-installer.iso")
 
-# Direct channel URLs — tried in order, first success wins
+# Direct URLs — tried in order, first reachable one wins
 DIRECT_URLS = [
-    # NixOS 24.11 stable (GNOME — good default graphical installer)
+    # ── GitHub releases (NixOS/nixos-images) — often fastest ──────────────────
+    "https://github.com/NixOS/nixos-images/releases/download/nixos-24.11/nixos-graphical-installer-24.11-x86_64-linux.iso",
+    # ── Official NixOS channels CDN ────────────────────────────────────────────
     "https://channels.nixos.org/nixos-24.11/latest-nixos-gnome-x86_64-linux.iso",
-    # KDE Plasma alternative
     "https://channels.nixos.org/nixos-24.11/latest-nixos-plasma6-x86_64-linux.iso",
-    # Minimal fallback
+    # ── Community mirrors ──────────────────────────────────────────────────────
+    "https://mirror.sjtu.edu.cn/nix-channels/releases/nixos-24.11/latest-nixos-gnome-x86_64-linux.iso",
+    "https://mirror.iscas.ac.cn/nixos-images/nixos/24.11/latest-nixos-gnome-x86_64-linux.iso",
+    # ── Minimal as last resort ─────────────────────────────────────────────────
     "https://channels.nixos.org/nixos-24.11/latest-nixos-minimal-x86_64-linux.iso",
 ]
 
@@ -44,9 +48,9 @@ def download_direct():
     for url in DIRECT_URLS:
         print(f"\nTrying: {url}")
         try:
-            # HEAD request first to confirm the URL resolves
+            # HEAD request — short timeout so we skip dead mirrors fast
             req = urllib.request.Request(url, method="HEAD")
-            with urllib.request.urlopen(req, timeout=15) as resp:
+            with urllib.request.urlopen(req, timeout=8) as resp:
                 size_mb = int(resp.headers.get("Content-Length", 0)) // (1024 * 1024)
                 print(f"  File size: ~{size_mb} MB — starting download...")
 
