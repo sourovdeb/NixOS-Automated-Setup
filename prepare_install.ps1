@@ -1,19 +1,19 @@
 # prepare_install.ps1
 # Run this on Windows BEFORE booting the NixOS USB.
-# Copies all setup scripts to D:\nixos_setup\ so they are readable
-# from the NixOS live environment (NixOS can mount NTFS drives).
+# Copies all setup scripts to F:\nixos_setup\ so they are readable
+# from the NixOS live environment (NixOS can mount exFAT drives).
 
-$SsdDrive   = "D:\"
-$SetupDir   = "D:\nixos_setup"
+$SsdDrive   = "F:\"
+$SetupDir   = "F:\nixos_setup"
 $ScriptDir  = $PSScriptRoot
 $IsoFile    = "$env:USERPROFILE\Desktop\NixOS_Installer\nixos-graphical-installer.iso"
 
 Write-Host "============================================" -ForegroundColor Cyan
-Write-Host " NixOS Install Prep - copying scripts to D:" -ForegroundColor Cyan
+Write-Host " NixOS Install Prep - copying scripts to F:" -ForegroundColor Cyan
 Write-Host "============================================" -ForegroundColor Cyan
 
 if (-not (Test-Path $SsdDrive)) {
-    Write-Host "ERROR: SSD D: not found. Plug in the SSD and try again." -ForegroundColor Red
+    Write-Host "ERROR: SSD F: not found. Plug in the SSD and try again." -ForegroundColor Red
     exit 1
 }
 
@@ -33,7 +33,9 @@ New-Item -ItemType Directory -Path $SetupDir -Force | Out-Null
 $files = @(
     "automate_nixos_setup.sh",
     "partition_ssd.sh",
-    "configuration.nix"
+    "configuration.nix",
+    "research.py",
+    "post_to_wp.py"
 )
 
 foreach ($f in $files) {
@@ -57,15 +59,16 @@ To access them from the live environment:
 
   1. Find this drive:
        lsblk -f
-     Look for the NTFS partition (your D: drive).
+     Look for the exFAT partition labelled LUBUNTU (your F: drive, ~465GB).
 
-  2. Mount it (replace /dev/sdXY with the NTFS partition):
-       mkdir -p /mnt/windows
-       mount -t ntfs-3g /dev/sdXY /mnt/windows
+  2. Mount it (replace /dev/sdXY with that partition):
+       mkdir -p /mnt/ssd
+       mount /dev/sdXY /mnt/ssd
 
   3. Copy the scripts to /tmp:
-       cp /mnt/windows/nixos_setup/*.sh /tmp/
-       cp /mnt/windows/nixos_setup/configuration.nix /tmp/
+       cp /mnt/ssd/nixos_setup/*.sh /tmp/
+       cp /mnt/ssd/nixos_setup/configuration.nix /tmp/
+       cp /mnt/ssd/nixos_setup/*.py /tmp/
        chmod +x /tmp/*.sh
 
   4. Run the installer:
@@ -90,7 +93,7 @@ Write-Host "  Created: START_HERE.txt" -ForegroundColor Green
 
 Write-Host ""
 Write-Host "============================================" -ForegroundColor Cyan
-Write-Host " Prep complete! Files on D:\nixos_setup\" -ForegroundColor Green
+Write-Host " Prep complete! Files on F:\nixos_setup\" -ForegroundColor Green
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Next steps:" -ForegroundColor White

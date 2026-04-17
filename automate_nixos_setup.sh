@@ -17,17 +17,13 @@ echo ""
 
 # ── Step 1: Identify the external SSD ────────────────────────────────────────
 echo "=== Step 1: Identify your external SSD ==="
-
-echo "--- lsblk output ---" | tee -a "$LOG"
-lsblk -f | tee /tmp/disk_info.txt | tee -a "$LOG"
+echo "--- All disks ---"
+lsblk -dpno NAME,SIZE,MODEL | grep -v loop
 echo ""
-echo "All disks (size + model):"
-lsblk -dpno NAME,SIZE,MODEL | grep -v loop | tee -a "$LOG"
+echo "TIP: Your target SSD is the largest non-USB disk above."
+echo "     Do NOT select the live USB itself."
 echo ""
-echo "TIP: Your target SSD (D: from Windows) is probably the largest non-USB disk above."
-echo "     The live USB itself will show as a device too — do NOT select it."
-echo ""
-read -p "Enter the SSD device to install NixOS on (e.g. /dev/sdb or /dev/nvme0n1): " SSD
+read -p "Enter the SSD device (e.g. /dev/sdb or /dev/nvme0n1): " SSD
 
 if [ -z "$SSD" ] || [ ! -b "$SSD" ]; then
     echo "ERROR: '$SSD' is not a valid block device. Aborting."
@@ -36,7 +32,7 @@ fi
 
 echo ""
 echo "You selected: $SSD"
-lsblk "$SSD" | tee -a "$LOG"
+lsblk "$SSD"
 echo ""
 echo "WARNING: ALL DATA on $SSD will be permanently erased!"
 read -p "Type 'yes' to continue: " confirm
@@ -85,14 +81,31 @@ nixos-generate-config --root /mnt
 # ── Step 5: Write configuration.nix ──────────────────────────────────────────
 echo ""
 echo "=== Step 5: Writing configuration.nix ==="
+
+# Use configuration.nix from scripts folder if available, otherwise use embedded
+CONFIG_SRC=""
+for loc in "/tmp/configuration.nix" "/mnt/windows/nixos_setup/configuration.nix"; do
+    if [ -f "$loc" ]; then
+        CONFIG_SRC="$loc"
+        echo "Using configuration.nix from: $loc"
+        break
+    fi
+done
+
+if [ -n "$CONFIG_SRC" ]; then
+    cp "$CONFIG_SRC" /mnt/etc/nixos/configuration.nix
+else
+    echo "Using embedded configuration.nix"
 cat > /mnt/etc/nixos/configuration.nix << 'NIXCFG'
 { config, pkgs, ... }:
 {
   imports = [ ./hardware-configuration.nix ];
 
+  nixpkgs.config.allowUnfree = true;
+
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
-  boot.supportedFilesystems = [ "ntfs" "vfat" "ext4" ];
+  boot.supportedFilesystems = [ "ntfs" "vfat" "ext4" "exfat" ];
 
   fileSystems."/"     = { device = "/dev/disk/by-label/NixOS"; fsType = "ext4"; };
   fileSystems."/boot" = { device = "/dev/disk/by-label/EFI";   fsType = "vfat"; };
@@ -111,68 +124,75 @@ cat > /mnt/etc/nixos/configuration.nix << 'NIXCFG'
   security.sudo.wheelNeedsPassword = false;
 
   environment.systemPackages = with pkgs; [
-    # Writing & research
-    zettlr focuswriter libreoffice pandoc
-    aspell aspellDicts.en languagetool
-    hunspell hunspellDicts.en_US
-
-    # AI / LLM
-    ollama
-
-    # VS Code with extensions
+    obsidian zettlr focuswriter libreoffice pandoc vim
+    aspell aspellDicts.en languagetool hunspell hunspellDicts.en_US
+    hugo git ffmpeg openai-whisper ollama
     (vscode-with-extensions.override {
       vscodeExtensions = with vscode-extensions; [
-        ms-python.python
-        streetsidesoftware.code-spell-checker
-        redhat.vscode-yaml
-        tamasfe.even-better-toml
-        yzhang.markdown-all-in-one
-        eamodio.gitlens
+        ms-python.python streetsidesoftware.code-spell-checker
+        redhat.vscode-yaml tamasfe.even-better-toml
+        yzhang.markdown-all-in-one eamodio.gitlens
       ];
     })
-
-    # ADHD / focus tools
-    gnome-pomodoro taskwarrior3 timewarrior blanket
-
-    # Desktop & browser
-    firefox xfce4-terminal thunar xarchiver evince
-
-    # Utilities
-    git wget curl htop unzip p7zip ntfs3g nano xclip
+    gnome-pomodoro taskwarrior3 timewarrior blanket libnotify
+    python3 python3Packages.requests python3Packages.playwright
+    nodejs_22 wp-cli
+    firefox alacritty xfce4-terminal thunar xarchiver evince
+    rofi flameshot espeak-ng wmctrl xdotool
+    wget curl htop unzip p7zip ntfs3g nano xclip rsync
   ];
 
-  services.ollama        = { enable = true; port = 11434; };
+  services.ollama = { enable = true; port = 11434; };
   programs.nix-ld.enable = true;
   programs.nm-applet.enable = true;
 
   services.xserver = {
     enable = true;
-    desktopManager.xfce.enable      = true;
-    displayManager.lightdm.enable   = true;
+    desktopManager.xfce.enable  = true;
+    displayManager.lightdm.enable = true;
+    windowManager.i3.enable     = true;
   };
   services.displayManager.defaultSession = "xfce";
 
-  fonts.packages = with pkgs; [
-    dejavu_fonts roboto noto-fonts noto-fonts-emoji liberation_ttf
-  ];
+  fonts.packages = with pkgs; [ dejavu_fonts roboto noto-fonts noto-fonts-emoji liberation_ttf ];
 
-  environment.variables = {
-    QT_FONT_DPI = "120"; GDK_SCALE = "2"; GDK_DPI_SCALE = "0.5";
-  };
+  environment.variables = { QT_FONT_DPI = "120"; GDK_SCALE = "2"; GDK_DPI_SCALE = "0.5"; };
 
   services.pipewire = { enable = true; alsa.enable = true; pulse.enable = true; };
-  services.printing.enable  = true;
-  services.gvfs.enable      = true;
-  services.udisks2.enable   = true;
+  services.printing.enable = true;
+  services.gvfs.enable     = true;
+  services.udisks2.enable  = true;
 
   powerManagement.enable          = true;
   powerManagement.cpuFreqGovernor = "powersave";
+
+  systemd.timers."focus-reminder" = {
+    wantedBy = [ "timers.target" ];
+    partOf   = [ "focus-reminder.service" ];
+    timerConfig = { OnBootSec = "1h"; OnUnitActiveSec = "1h"; };
+  };
+  systemd.services."focus-reminder" = {
+    script = ''${pkgs.libnotify}/bin/notify-send -u normal "Focus Check" "What are you working on right now?"'';
+    serviceConfig = { User = "sourov"; Type = "oneshot"; };
+  };
+
+  systemd.timers."writing-backup" = {
+    wantedBy = [ "timers.target" ];
+    partOf   = [ "writing-backup.service" ];
+    timerConfig = { OnCalendar = "daily"; Persistent = true; };
+  };
+  systemd.services."writing-backup" = {
+    script = ''${pkgs.rsync}/bin/rsync -a /home/sourov/Documents/ /home/sourov/Documents.backup/'';
+    serviceConfig = { User = "sourov"; Type = "oneshot"; };
+  };
 
   system.activationScripts.setupWriter = {
     text = ''
       mkdir -p /home/sourov/Documents/Writing
       mkdir -p /home/sourov/Documents/Notes
-      chown -R sourov:users /home/sourov/Documents 2>/dev/null || true
+      mkdir -p /home/sourov/Documents/Podcast
+      mkdir -p /home/sourov/Sites
+      chown -R sourov:users /home/sourov/Documents /home/sourov/Sites 2>/dev/null || true
     '';
     deps = [];
   };
@@ -180,20 +200,38 @@ cat > /mnt/etc/nixos/configuration.nix << 'NIXCFG'
   system.stateVersion = "24.05";
 }
 NIXCFG
+fi
+
 echo "configuration.nix written."
 
-# ── Step 6: Install NixOS ─────────────────────────────────────────────────────
+# ── Step 6: Copy utility scripts to new system ────────────────────────────────
 echo ""
-echo "=== Step 6: Installing NixOS (this takes 10-30 minutes) ==="
+echo "=== Step 6: Copying utility scripts ==="
+mkdir -p /mnt/home/sourov/scripts
+
+for script in research.py post_to_wp.py; do
+    for loc in "/tmp/$script" "/mnt/windows/nixos_setup/$script"; do
+        if [ -f "$loc" ]; then
+            cp "$loc" /mnt/home/sourov/scripts/
+            echo "  Copied: $script"
+            break
+        fi
+    done
+done
+
+chmod +x /mnt/home/sourov/scripts/*.py 2>/dev/null || true
+
+# ── Step 7: Install NixOS ─────────────────────────────────────────────────────
+echo ""
+echo "=== Step 7: Installing NixOS (this takes 10-30 minutes) ==="
 nixos-install --root /mnt --no-root-passwd
 echo "NixOS installation complete."
 
-# ── Step 7: Save setup log to the new system ──────────────────────────────────
+# ── Step 8: Save setup log ────────────────────────────────────────────────────
 echo ""
-echo "=== Step 7: Saving setup log ==="
-mkdir -p /mnt/home/sourov
+echo "=== Step 8: Saving setup log ==="
 cp "$LOG" /mnt/home/sourov/nixos_setup_log.txt
-echo "Log saved to /home/sourov/nixos_setup_log.txt on the new system."
+echo "Log saved to /home/sourov/nixos_setup_log.txt"
 
 echo ""
 echo "=============================================="
@@ -201,9 +239,9 @@ echo " Setup complete!"
 echo "=============================================="
 echo ""
 echo "Next steps:"
-echo "  1. Reboot:   reboot"
+echo "  1. reboot"
 echo "  2. Remove the USB when the PC restarts"
 echo "  3. Select the SSD from your boot menu"
 echo "  4. Log in as 'sourov' with password 'nixos'"
 echo "  5. Change your password:  passwd"
-echo "  6. Run Ollama:  ollama pull llama3.2"
+echo "  6. Pull AI model:  ollama pull llama3.2"
