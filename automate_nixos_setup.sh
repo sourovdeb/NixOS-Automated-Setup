@@ -17,17 +17,26 @@ echo ""
 
 # ── Step 1: Identify the external SSD ────────────────────────────────────────
 echo "=== Step 1: Identify your external SSD ==="
-echo "Available disks:"
-lsblk -dpno NAME,SIZE,MODEL | grep -v loop
+
+echo "--- lsblk output ---" | tee -a "$LOG"
+lsblk -f | tee /tmp/disk_info.txt | tee -a "$LOG"
 echo ""
-read -p "Enter the SSD device (e.g. /dev/sdb or /dev/nvme0n1): " SSD
+echo "All disks (size + model):"
+lsblk -dpno NAME,SIZE,MODEL | grep -v loop | tee -a "$LOG"
+echo ""
+echo "TIP: Your target SSD (D: from Windows) is probably the largest non-USB disk above."
+echo "     The live USB itself will show as a device too — do NOT select it."
+echo ""
+read -p "Enter the SSD device to install NixOS on (e.g. /dev/sdb or /dev/nvme0n1): " SSD
 
 if [ -z "$SSD" ] || [ ! -b "$SSD" ]; then
     echo "ERROR: '$SSD' is not a valid block device. Aborting."
     exit 1
 fi
 
-lsblk "$SSD"
+echo ""
+echo "You selected: $SSD"
+lsblk "$SSD" | tee -a "$LOG"
 echo ""
 echo "WARNING: ALL DATA on $SSD will be permanently erased!"
 read -p "Type 'yes' to continue: " confirm
