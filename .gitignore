@@ -1,0 +1,25 @@
+# Secrets — never commit
+.env
+*.env.local
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+
+# NixOS build artifacts
+result/
+.direnv/
+
+# Claude
+.claude/
+
+# System
+.DS_Store
+Thumbs.db
