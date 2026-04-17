@@ -2,54 +2,90 @@
 echo NixOS ISO Download Script
 echo =========================
 
-REM Check if Python is available
+REM ── Find Python ──────────────────────────────────────────────────────────────
+set PYTHON=
+
+REM 1. Try python in PATH
 where python >nul 2>nul
-if %errorlevel% neq 0 (
-    echo Python is not found in PATH.
-    echo Please install Python 3.8+ or add it to PATH.
-    pause
-    exit /b 1
+if %errorlevel% equ 0 (
+    set PYTHON=python
+    goto :python_found
 )
 
-REM Check Python version
-python --version
+REM 2. Try python3 in PATH
+where python3 >nul 2>nul
+if %errorlevel% equ 0 (
+    set PYTHON=python3
+    goto :python_found
+)
 
-REM Check if Playwright is installed
+REM 3. Known install location (Python 3.11)
+if exist "%LOCALAPPDATA%\Programs\Python\Python311\python.exe" (
+    set PYTHON=%LOCALAPPDATA%\Programs\Python\Python311\python.exe
+    goto :python_found
+)
+
+REM 4. Common alternative locations
+if exist "C:\Python311\python.exe" (
+    set PYTHON=C:\Python311\python.exe
+    goto :python_found
+)
+if exist "C:\Python310\python.exe" (
+    set PYTHON=C:\Python310\python.exe
+    goto :python_found
+)
+if exist "%LOCALAPPDATA%\Programs\Python\Python310\python.exe" (
+    set PYTHON=%LOCALAPPDATA%\Programs\Python\Python310\python.exe
+    goto :python_found
+)
+
+echo Python not found in any known location.
+echo Please install Python 3.8+ from https://python.org/downloads
+echo Make sure to check "Add Python to PATH" during installation.
+pause
+exit /b 1
+
+:python_found
+echo Python found: %PYTHON%
+"%PYTHON%" --version
+
+REM ── Check / install Playwright ───────────────────────────────────────────────
 echo.
 echo Checking Playwright installation...
-python -c "import playwright" 2>nul
+"%PYTHON%" -c "import playwright" >nul 2>nul
 if %errorlevel% neq 0 (
-    echo Playwright is not installed.
     echo Installing Playwright...
-    python -m pip install playwright
-    echo Installing Firefox browser for Playwright...
-    python -m playwright install firefox
+    "%PYTHON%" -m pip install playwright
+    echo Installing Firefox for Playwright...
+    "%PYTHON%" -m playwright install firefox
+) else (
+    echo Playwright is already installed.
 )
 
-REM Create download directory
+REM ── Create download directory ─────────────────────────────────────────────────
 echo.
 echo Creating download directory...
 mkdir "%USERPROFILE%\Desktop\NixOS_Installer" 2>nul
 
-REM Run the download script
+REM ── Run download script ───────────────────────────────────────────────────────
 echo.
 echo Running NixOS ISO download script...
-echo This will open Firefox browser to download the ISO.
+echo This will open a Firefox window to download the ISO.
 echo.
-python download_nixos_playwright.py
+"%PYTHON%" "%~dp0download_nixos_playwright.py"
 
-REM Check if download was successful
+REM ── Result check ──────────────────────────────────────────────────────────────
 if exist "%USERPROFILE%\Desktop\NixOS_Installer\nixos-graphical-installer.iso" (
     echo.
     echo SUCCESS: NixOS ISO downloaded!
     echo Location: %USERPROFILE%\Desktop\NixOS_Installer\nixos-graphical-installer.iso
 ) else (
     echo.
-    echo WARNING: ISO download may have failed.
-    echo Please check the Firefox window and manually download if needed.
-    echo Download URL: https://nixos.org/download.html
+    echo WARNING: ISO not found at expected location.
+    echo If Firefox opened, check your Downloads folder and move the .iso file to:
+    echo   %USERPROFILE%\Desktop\NixOS_Installer\
+    echo Or download manually from: https://nixos.org/download.html
 )
 
 echo.
-echo Press any key to exit...
-pause >nul
+pause
