@@ -1,93 +1,97 @@
 { config, pkgs, ... }:
 {
-  imports = [
-    ./hardware-configuration.nix
-  ];
+  imports = [ ./hardware-configuration.nix ];
 
-  # Bootloader for UEFI (GPT)
+  # ── Boot (UEFI / GPT) ──────────────────────────────────────────────────────
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
   boot.supportedFilesystems = [ "ntfs" "vfat" "ext4" ];
 
-  # File systems (labels set by partition_ssd.sh)
-  fileSystems."/" = {
-    device = "/dev/disk/by-label/NixOS";
-    fsType = "ext4";
-  };
-  fileSystems."/boot" = {
-    device = "/dev/disk/by-label/EFI";
-    fsType = "vfat";
-  };
+  # ── File systems (labels written by partition_ssd.sh) ─────────────────────
+  fileSystems."/" = { device = "/dev/disk/by-label/NixOS"; fsType = "ext4"; };
+  fileSystems."/boot" = { device = "/dev/disk/by-label/EFI"; fsType = "vfat"; };
 
-  # Networking
+  # ── Network ───────────────────────────────────────────────────────────────
   networking.hostName = "nixos-writer";
   networking.networkmanager.enable = true;
 
-  # Time zone
+  # ── Locale / timezone ─────────────────────────────────────────────────────
   time.timeZone = "Asia/Dhaka";
-
-  # Locale
   i18n.defaultLocale = "en_US.UTF-8";
 
-  # Users — change the initialPassword after first boot with `passwd`
+  # ── User ──────────────────────────────────────────────────────────────────
+  # Password is "nixos" — change it after first boot with: passwd
   users.users.sourov = {
     isNormalUser = true;
     extraGroups = [ "wheel" "networkmanager" "video" "audio" ];
     initialPassword = "nixos";
   };
-
-  # Allow sudo for wheel group
   security.sudo.wheelNeedsPassword = false;
 
-  # System packages: Writing tools, VS Code, Ollama, ADHD/autism tools
+  # ── Packages ──────────────────────────────────────────────────────────────
   environment.systemPackages = with pkgs; [
-    # Writing tools
-    zettlr
-    focuswriter
-    libreoffice
-    pandoc
-    aspell
-    aspellDicts.en
-    languagetool
 
-    # VS Code with useful extensions
+    # ── Writing & research ─────────────────────────────────────────────────
+    zettlr          # Zettelkasten / Markdown long-form writing
+    focuswriter     # Distraction-free full-screen editor
+    libreoffice     # Office suite (docs, spreadsheets)
+    pandoc          # Convert between Markdown, DOCX, PDF, etc.
+    aspell          # Spell check engine
+    aspellDicts.en  # English dictionary
+    languagetool    # Grammar / style checker (CLI)
+    hunspell        # Additional spell check (used by LibreOffice)
+    hunspellDicts.en_US
+
+    # ── AI / LLM ───────────────────────────────────────────────────────────
+    ollama          # Run local LLMs (service also enabled below)
+
+    # ── VS Code + extensions ───────────────────────────────────────────────
     (vscode-with-extensions.override {
       vscodeExtensions = with vscode-extensions; [
-        ms-python.python
-        streetsidesoftware.code-spell-checker
-        redhat.vscode-yaml
-        tamasfe.even-better-toml
+        ms-python.python                          # Python
+        streetsidesoftware.code-spell-checker    # Spell check in editor
+        redhat.vscode-yaml                        # YAML support
+        tamasfe.even-better-toml                  # TOML support
+        yzhang.markdown-all-in-one               # Markdown preview + shortcuts
+        eamodio.gitlens                           # Git history in editor
       ];
     })
 
-    # Ollama (local LLM — service also enabled below)
-    ollama
+    # ── ADHD / focus tools ─────────────────────────────────────────────────
+    gnome-pomodoro  # Pomodoro timer with GNOME integration
+    taskwarrior3    # Task management (CLI)
+    timewarrior     # Time tracking (pairs with taskwarrior)
+    blanket         # Ambient sounds (focus / masking)
 
-    # ADHD/Autism productivity tools
-    gnome-pomodoro    # Pomodoro timer
-    taskwarrior3      # Task management (v3)
-    timewarrior       # Time tracking
-    xfce4-terminal
-    falkon            # Lightweight browser
+    # ── Desktop & browser ──────────────────────────────────────────────────
+    firefox         # Main browser
+    xfce4-terminal  # Terminal
+    thunar          # File manager (Xfce default)
+    xarchiver       # Archive manager
+    evince          # PDF reader
 
-    # Utilities
+    # ── System utilities ───────────────────────────────────────────────────
     git
     wget
     curl
     htop
     unzip
+    p7zip
+    ntfs3g          # Read/write Windows NTFS drives
+    nano            # Simple text editor (for editing config files)
+    xclip           # Clipboard CLI (useful for scripts)
   ];
 
-  # Enable Ollama service
+  # ── Ollama service ────────────────────────────────────────────────────────
   services.ollama = {
     enable = true;
-    port = 11434;
+    port   = 11434;
   };
 
-  # Enable nix-ld so VS Code extensions (and other FHS binaries) work
+  # ── nix-ld: lets VS Code extensions & FHS binaries run ───────────────────
   programs.nix-ld.enable = true;
 
-  # Xfce desktop (lightweight and accessible)
+  # ── Xfce desktop ──────────────────────────────────────────────────────────
   services.xserver = {
     enable = true;
     desktopManager.xfce.enable = true;
@@ -95,36 +99,52 @@
   };
   services.displayManager.defaultSession = "xfce";
 
-  # Fonts — readable, high-DPI friendly
+  # NetworkManager tray applet so WiFi works from the taskbar
+  programs.nm-applet.enable = true;
+
+  # ── Fonts ─────────────────────────────────────────────────────────────────
   fonts.packages = with pkgs; [
     dejavu_fonts
     roboto
     noto-fonts
+    noto-fonts-emoji   # Emoji support
+    liberation_ttf     # Open replacements for Arial / Times / Courier
   ];
 
-  # High-DPI / accessibility scaling
+  # ── Accessibility / high-DPI scaling ─────────────────────────────────────
   environment.variables = {
-    QT_FONT_DPI = "120";
-    GDK_SCALE = "2";
-    GDK_DPI_SCALE = "0.5";
+    QT_FONT_DPI     = "120";
+    GDK_SCALE       = "2";
+    GDK_DPI_SCALE   = "0.5";
   };
 
-  # Power management
-  powerManagement.enable = true;
+  # ── Sound ─────────────────────────────────────────────────────────────────
+  services.pipewire = {
+    enable       = true;
+    alsa.enable  = true;
+    pulse.enable = true;
+  };
+
+  # ── Power management ──────────────────────────────────────────────────────
+  powerManagement.enable          = true;
   powerManagement.cpuFreqGovernor = "powersave";
 
-  # Enable SSH (optional, useful for remote management)
-  services.openssh.enable = false;
+  # ── Printing (optional — comment out if not needed) ───────────────────────
+  services.printing.enable = true;
 
-  # Create writing directory on first activation
+  # ── Auto-mount USB drives in Xfce ────────────────────────────────────────
+  services.gvfs.enable  = true;
+  services.udisks2.enable = true;
+
+  # ── Writer home directory ─────────────────────────────────────────────────
   system.activationScripts.setupWriter = {
     text = ''
       mkdir -p /home/sourov/Documents/Writing
-      chown sourov:users /home/sourov/Documents/Writing 2>/dev/null || true
+      mkdir -p /home/sourov/Documents/Notes
+      chown -R sourov:users /home/sourov/Documents 2>/dev/null || true
     '';
     deps = [];
   };
 
-  # NixOS release — keep in sync with nixos-rebuild
   system.stateVersion = "24.05";
 }

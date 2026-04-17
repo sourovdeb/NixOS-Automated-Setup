@@ -90,41 +90,34 @@ cat > /mnt/etc/nixos/configuration.nix << 'NIXCFG'
 {
   imports = [ ./hardware-configuration.nix ];
 
-  # Bootloader
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
   boot.supportedFilesystems = [ "ntfs" "vfat" "ext4" ];
 
-  # File systems
-  fileSystems."/" = {
-    device = "/dev/disk/by-label/NixOS";
-    fsType = "ext4";
-  };
-  fileSystems."/boot" = {
-    device = "/dev/disk/by-label/EFI";
-    fsType = "vfat";
-  };
+  fileSystems."/"     = { device = "/dev/disk/by-label/NixOS"; fsType = "ext4"; };
+  fileSystems."/boot" = { device = "/dev/disk/by-label/EFI";   fsType = "vfat"; };
 
-  # Networking
   networking.hostName = "nixos-writer";
   networking.networkmanager.enable = true;
 
-  # Time zone
-  time.timeZone = "Asia/Dhaka";
+  time.timeZone      = "Asia/Dhaka";
   i18n.defaultLocale = "en_US.UTF-8";
 
-  # User — change password after first boot with `passwd`
   users.users.sourov = {
-    isNormalUser = true;
-    extraGroups = [ "wheel" "networkmanager" "video" "audio" ];
+    isNormalUser  = true;
+    extraGroups   = [ "wheel" "networkmanager" "video" "audio" ];
     initialPassword = "nixos";
   };
   security.sudo.wheelNeedsPassword = false;
 
-  # System packages
   environment.systemPackages = with pkgs; [
-    # Writing tools
-    zettlr focuswriter libreoffice pandoc aspell aspellDicts.en languagetool
+    # Writing & research
+    zettlr focuswriter libreoffice pandoc
+    aspell aspellDicts.en languagetool
+    hunspell hunspellDicts.en_US
+
+    # AI / LLM
+    ollama
 
     # VS Code with extensions
     (vscode-with-extensions.override {
@@ -133,52 +126,53 @@ cat > /mnt/etc/nixos/configuration.nix << 'NIXCFG'
         streetsidesoftware.code-spell-checker
         redhat.vscode-yaml
         tamasfe.even-better-toml
+        yzhang.markdown-all-in-one
+        eamodio.gitlens
       ];
     })
 
-    # Local LLM
-    ollama
+    # ADHD / focus tools
+    gnome-pomodoro taskwarrior3 timewarrior blanket
 
-    # Productivity / ADHD tools
-    gnome-pomodoro taskwarrior3 timewarrior
-    xfce4-terminal falkon
+    # Desktop & browser
+    firefox xfce4-terminal thunar xarchiver evince
 
     # Utilities
-    git wget curl htop unzip
+    git wget curl htop unzip p7zip ntfs3g nano xclip
   ];
 
-  # Ollama service
-  services.ollama.enable = true;
-  services.ollama.port = 11434;
-
-  # VS Code FHS compatibility
+  services.ollama        = { enable = true; port = 11434; };
   programs.nix-ld.enable = true;
+  programs.nm-applet.enable = true;
 
-  # Xfce desktop
-  services.xserver.enable = true;
-  services.xserver.desktopManager.xfce.enable = true;
-  services.xserver.displayManager.lightdm.enable = true;
+  services.xserver = {
+    enable = true;
+    desktopManager.xfce.enable      = true;
+    displayManager.lightdm.enable   = true;
+  };
   services.displayManager.defaultSession = "xfce";
 
-  # Fonts
-  fonts.packages = with pkgs; [ dejavu_fonts roboto noto-fonts ];
+  fonts.packages = with pkgs; [
+    dejavu_fonts roboto noto-fonts noto-fonts-emoji liberation_ttf
+  ];
 
-  # High-DPI scaling
   environment.variables = {
-    QT_FONT_DPI = "120";
-    GDK_SCALE = "2";
-    GDK_DPI_SCALE = "0.5";
+    QT_FONT_DPI = "120"; GDK_SCALE = "2"; GDK_DPI_SCALE = "0.5";
   };
 
-  # Power management
-  powerManagement.enable = true;
+  services.pipewire = { enable = true; alsa.enable = true; pulse.enable = true; };
+  services.printing.enable  = true;
+  services.gvfs.enable      = true;
+  services.udisks2.enable   = true;
+
+  powerManagement.enable          = true;
   powerManagement.cpuFreqGovernor = "powersave";
 
-  # Create writing directory on first boot
   system.activationScripts.setupWriter = {
     text = ''
       mkdir -p /home/sourov/Documents/Writing
-      chown sourov:users /home/sourov/Documents/Writing 2>/dev/null || true
+      mkdir -p /home/sourov/Documents/Notes
+      chown -R sourov:users /home/sourov/Documents 2>/dev/null || true
     '';
     deps = [];
   };
