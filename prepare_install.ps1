@@ -5,14 +5,13 @@
 
 $SsdDrive   = "D:\"
 $SetupDir   = "D:\nixos_setup"
-$ScriptDir  = $PSScriptRoot   # folder this script lives in
+$ScriptDir  = $PSScriptRoot
 $IsoFile    = "$env:USERPROFILE\Desktop\NixOS_Installer\nixos-graphical-installer.iso"
 
 Write-Host "============================================" -ForegroundColor Cyan
-Write-Host " NixOS Install Prep — copying scripts to D:" -ForegroundColor Cyan
+Write-Host " NixOS Install Prep - copying scripts to D:" -ForegroundColor Cyan
 Write-Host "============================================" -ForegroundColor Cyan
 
-# ── Checks ────────────────────────────────────────────────────────────────────
 if (-not (Test-Path $SsdDrive)) {
     Write-Host "ERROR: SSD D: not found. Plug in the SSD and try again." -ForegroundColor Red
     exit 1
@@ -21,13 +20,12 @@ if (-not (Test-Path $SsdDrive)) {
 if (-not (Test-Path $IsoFile)) {
     Write-Host "WARNING: NixOS ISO not downloaded yet." -ForegroundColor Yellow
     Write-Host "  Run run_download.bat first, then come back here." -ForegroundColor Yellow
-    Write-Host "  (Skipping ISO check — scripts will still be copied.)" -ForegroundColor Gray
+    Write-Host "  (Skipping ISO check - scripts will still be copied.)" -ForegroundColor Gray
 } else {
-    $gb = [math]::Round((Get-Item $IsoFile).Length / 1GB, 2)
-    Write-Host "ISO     : $IsoFile ($gb GB)  OK" -ForegroundColor Green
+    $sizeGB = [math]::Round((Get-Item $IsoFile).Length / 1GB, 2)
+    Write-Host "ISO     : $IsoFile ($sizeGB GB)  OK" -ForegroundColor Green
 }
 
-# ── Copy scripts ──────────────────────────────────────────────────────────────
 Write-Host ""
 Write-Host "Copying setup scripts to $SetupDir ..." -ForegroundColor Cyan
 New-Item -ItemType Directory -Path $SetupDir -Force | Out-Null
@@ -48,10 +46,9 @@ foreach ($f in $files) {
     }
 }
 
-# ── Write a START_HERE.txt with live-boot instructions ────────────────────────
 $startHere = @"
 ============================================================
- NixOS Setup — START HERE
+ NixOS Setup - START HERE
  (Read this from the NixOS live USB environment)
 ============================================================
 
@@ -75,7 +72,7 @@ To access them from the live environment:
        cd /tmp
        sudo bash automate_nixos_setup.sh
 
-  OR — if you have internet in the live environment:
+  OR - if you have internet in the live environment:
        curl -O https://raw.githubusercontent.com/sourovdeb/NixOS-Automated-Setup/main/automate_nixos_setup.sh
        chmod +x automate_nixos_setup.sh
        sudo bash automate_nixos_setup.sh
@@ -91,18 +88,15 @@ To access them from the live environment:
 Set-Content -Path "$SetupDir\START_HERE.txt" -Value $startHere -Encoding UTF8
 Write-Host "  Created: START_HERE.txt" -ForegroundColor Green
 
-# ── Summary ───────────────────────────────────────────────────────────────────
 Write-Host ""
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Host " Prep complete! Files on D:\nixos_setup\" -ForegroundColor Green
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Next steps:" -ForegroundColor White
-Write-Host "  1. Wait for the ISO download to finish (run_download.bat)" -ForegroundColor Yellow
-Write-Host "  2. Run flash_usb_rufus.ps1 to flash the ISO to USB E:" -ForegroundColor Yellow
-Write-Host "  3. Reboot — press F12 — select USB" -ForegroundColor Yellow
-Write-Host "  4. In NixOS live: follow START_HERE.txt on this drive" -ForegroundColor Yellow
-Write-Host "     OR: curl from GitHub (internet needed)" -ForegroundColor Yellow
+Write-Host "  1. Run flash_usb_rufus.ps1 to flash the ISO to USB E:" -ForegroundColor Yellow
+Write-Host "  2. Reboot - press F12 - select USB" -ForegroundColor Yellow
+Write-Host "  3. In NixOS live: follow START_HERE.txt on this drive" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "IMPORTANT: The installer will ERASE everything on your target SSD." -ForegroundColor Red
 Write-Host "           Double-check the device name with  lsblk -f  before confirming." -ForegroundColor Red
