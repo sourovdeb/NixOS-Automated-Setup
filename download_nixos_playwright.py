@@ -1,144 +1,149 @@
 #!/usr/bin/env python3
 """
-NixOS ISO Download Script using Playwright
-Downloads the latest NixOS graphical installer ISO automatically.
+NixOS ISO Downloader
+Downloads the latest NixOS graphical installer ISO directly via HTTP.
+Falls back to Playwright browser if direct download fails.
 """
 
 import os
 import sys
-from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
+import urllib.request
+import urllib.error
 
-def download_nixos_iso():
-    """
-    Download the latest NixOS graphical installer ISO using Firefox.
-    """
-    # Create download directory
-    download_dir = os.path.expanduser("~/Desktop/NixOS_Installer")
-    os.makedirs(download_dir, exist_ok=True)
-    iso_path = os.path.join(download_dir, "nixos-graphical-installer.iso")
-    
-    print(f"Download directory: {download_dir}")
-    print(f"Target ISO path: {iso_path}")
-    
-    try:
-        with sync_playwright() as p:
-            print("Launching Firefox browser...")
-            browser = p.firefox.launch(headless=False)
-            page = browser.new_page()
-            
-            print("Navigating to NixOS download page...")
-            page.goto("https://nixos.org/download.html")
-            
-            # Wait for page to load
-            page.wait_for_load_state("networkidle")
-            
-            print("Looking for download links...")
-            
-            # Try multiple selectors for the download link
-            # The website structure may change, so we try several approaches
-            
-            # Option 1: Look for graphical installer links
-            graphical_selectors = [
-                'a:has-text("Graphical installer")',
-                'a:has-text("graphical")',
-                'a:has-text("ISO")',
-                'a[href*=".iso"]',
-                'a[href*="graphical"]',
-                'a[href*="plasma"]',
-                'a[href*="gnome"]',
-                'a[href*="xfce"]'
-            ]
-            
-            downloaded = False
-            for selector in graphical_selectors:
-                try:
-                    elements = page.query_selector_all(selector)
-                    if elements:
-                        print(f"Found {len(elements)} elements with selector: {selector}")
-                        # Click the first one
-                        with page.expect_download() as download_info:
-                            elements[0].click()
-                        download = download_info.value
-                        download.save_as(iso_path)
-                        print(f"✓ Successfully downloaded: {iso_path}")
-                        print(f"  File size: {os.path.getsize(iso_path) if os.path.exists(iso_path) else 'unknown'} bytes")
-                        downloaded = True
-                        break
-                except Exception as e:
-                    print(f"  Selector '{selector}' failed: {e}")
-                    continue
-            
-            # Option 2: If no graphical installer found, try manual approach
-            if not downloaded:
-                print("Could not find graphical installer automatically.")
-                print("Please manually select the download on the page.")
-                print("The browser will stay open for 60 seconds for manual download.")
-                page.pause()  # Pause for manual intervention
-                
-                # Check if file was manually downloaded
-                if os.path.exists(iso_path):
-                    print(f"✓ Found manually downloaded file: {iso_path}")
-                else:
-                    # Try default NixOS ISO
-                    print("Trying default NixOS minimal ISO...")
-                    page.goto("https://nixos.org/download#nix-install-windows")
-                    page.wait_for_load_state("networkidle")
-                    
-                    # Look for Windows installer link
-                    win_selector = 'a[href*="nixos-minimal"]'
-                    with page.expect_download() as download_info:
-                        page.click(win_selector)
-                    download = download_info.value
-                    download.save_as(iso_path)
-                    print(f"✓ Downloaded minimal ISO: {iso_path}")
-            
-            browser.close()
-            
-            # Verify download
-            if os.path.exists(iso_path):
-                file_size = os.path.getsize(iso_path)
-                if file_size > 1000000:  # At least 1MB
-                    print(f"\n✅ Download successful!")
-                    print(f"   File: {iso_path}")
-                    print(f"   Size: {file_size / (1024*1024*1024):.2f} GB")
-                    return True
-                else:
-                    print(f"❌ File too small: {file_size} bytes")
-                    return False
+DOWNLOAD_DIR = os.path.join(os.path.expanduser("~"), "Desktop", "NixOS_Installer")
+ISO_PATH     = os.path.join(DOWNLOAD_DIR, "nixos-graphical-installer.iso")
+
+# Direct channel URLs — tried in order, first success wins
+DIRECT_URLS = [
+    # NixOS 24.11 stable (GNOME — good default graphical installer)
+    "https://channels.nixos.org/nixos-24.11/latest-nixos-gnome-x86_64-linux.iso",
+    # KDE Plasma alternative
+    "https://channels.nixos.org/nixos-24.11/latest-nixos-plasma6-x86_64-linux.iso",
+    # Minimal fallback
+    "https://channels.nixos.org/nixos-24.11/latest-nixos-minimal-x86_64-linux.iso",
+]
+
+MIN_ISO_BYTES = 500 * 1024 * 1024  # 500 MB sanity check
+
+
+def _progress(block_num, block_size, total_size):
+    downloaded = block_num * block_size
+    if total_size > 0:
+        pct = min(downloaded / total_size * 100, 100)
+        bar = "#" * int(pct / 2)
+        print(f"\r  [{bar:<50}] {pct:5.1f}%  "
+              f"{downloaded/1024/1024:.0f}/{total_size/1024/1024:.0f} MB",
+              end="", flush=True)
+    else:
+        print(f"\r  Downloaded {downloaded/1024/1024:.0f} MB...", end="", flush=True)
+
+
+def download_direct():
+    os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+
+    for url in DIRECT_URLS:
+        print(f"\nTrying: {url}")
+        try:
+            # HEAD request first to confirm the URL resolves
+            req = urllib.request.Request(url, method="HEAD")
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                size_mb = int(resp.headers.get("Content-Length", 0)) // (1024 * 1024)
+                print(f"  File size: ~{size_mb} MB — starting download...")
+
+            urllib.request.urlretrieve(url, ISO_PATH, reporthook=_progress)
+            print()  # newline after progress bar
+
+            if os.path.exists(ISO_PATH) and os.path.getsize(ISO_PATH) >= MIN_ISO_BYTES:
+                gb = os.path.getsize(ISO_PATH) / (1024 ** 3)
+                print(f"\n✅  Download complete!")
+                print(f"    File : {ISO_PATH}")
+                print(f"    Size : {gb:.2f} GB")
+                return True
             else:
-                print("❌ Download failed: File not found")
-                return False
-                
-    except Exception as e:
-        print(f"❌ Error during download: {e}")
-        import traceback
-        traceback.print_exc()
+                print("  File too small — trying next URL.")
+                os.remove(ISO_PATH)
+
+        except urllib.error.URLError as e:
+            print(f"  Failed: {e}")
+        except Exception as e:
+            print(f"  Error: {e}")
+
+    return False
+
+
+def download_playwright():
+    """Fallback: open NixOS download page in Firefox so user can click manually."""
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError:
+        print("Playwright not available for fallback.")
         return False
+
+    print("\nOpening NixOS download page in Firefox...")
+    print("Please click the 'Graphical installer' download link manually.")
+    print(f"Save the file to: {DOWNLOAD_DIR}")
+
+    with sync_playwright() as p:
+        browser = p.firefox.launch(headless=False)
+        page = browser.new_page()
+        page.goto("https://nixos.org/download/")
+        page.wait_for_load_state("networkidle")
+
+        print("\nBrowser is open. Download the ISO, then press Enter here to continue.")
+        input("Press Enter once the download has finished...")
+        browser.close()
+
+    # Check common download locations
+    candidates = [
+        ISO_PATH,
+        os.path.join(os.path.expanduser("~"), "Downloads", "nixos-graphical-installer.iso"),
+    ]
+    # Also check Downloads folder for any .iso file
+    downloads_dir = os.path.join(os.path.expanduser("~"), "Downloads")
+    for f in os.listdir(downloads_dir):
+        if f.lower().endswith(".iso") and "nixos" in f.lower():
+            candidates.append(os.path.join(downloads_dir, f))
+
+    for path in candidates:
+        if os.path.exists(path) and os.path.getsize(path) >= MIN_ISO_BYTES:
+            if path != ISO_PATH:
+                print(f"Found ISO at {path}, moving to {ISO_PATH}...")
+                os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+                os.rename(path, ISO_PATH)
+            print(f"✅  ISO ready at: {ISO_PATH}")
+            return True
+
+    return False
+
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("NixOS ISO Download Script")
+    print("NixOS ISO Downloader")
     print("=" * 60)
-    
-    # Check if Playwright is installed
-    try:
-        import playwright
-    except ImportError:
-        print("Playwright not installed. Installing...")
-        os.system("pip install playwright")
-        os.system("playwright install firefox")
-    
-    success = download_nixos_iso()
-    
+    print(f"Destination: {ISO_PATH}")
+
+    # Skip download if a valid ISO already exists
+    if os.path.exists(ISO_PATH) and os.path.getsize(ISO_PATH) >= MIN_ISO_BYTES:
+        gb = os.path.getsize(ISO_PATH) / (1024 ** 3)
+        print(f"\n✅  ISO already exists ({gb:.2f} GB) — skipping download.")
+        print("    Delete the file and re-run if you want a fresh copy.")
+        sys.exit(0)
+
+    success = download_direct()
+
+    if not success:
+        print("\nDirect download failed. Trying browser fallback...")
+        success = download_playwright()
+
     if success:
-        print("\n✅ NixOS ISO download completed successfully!")
-        print("\nNext steps:")
-        print("1. Use Rufus to create bootable USB from the ISO")
-        print("2. Boot your PC from the USB drive")
-        print("3. Run the automate_nixos_setup.sh script in NixOS live environment")
+        print("\n" + "=" * 60)
+        print("Next steps:")
+        print("  1. Run flash_usb_rufus.ps1 to flash the ISO to USB E:")
+        print("  2. Boot from USB (press F12 at startup)")
+        print("  3. Run automate_nixos_setup.sh in the NixOS live environment")
+        print("=" * 60)
     else:
-        print("\n❌ Download failed. Please try manually:")
-        print("   - Visit: https://nixos.org/download.html")
-        print("   - Download the graphical installer ISO")
-        print("   - Save to: ~/Desktop/NixOS_Installer/")
+        print("\n❌  Download failed.")
+        print("    Please download manually from: https://nixos.org/download/")
+        print(f"    Save the .iso file to: {DOWNLOAD_DIR}")
         sys.exit(1)
