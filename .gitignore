@@ -1,0 +1,22 @@
+# Large binaries and external media
+*.iso
+*.vmdk
+*.vdi
+*.vbox
+*.vbox-prev
+*.log
+
+# Folders with large or transient content
+/downloads/
+/virtualbox/
+/MOUNTEDSSD/
+/__pycache__/
+/node_modules/
+
+# VS Code and extensions
+.vscode/
+*.vsix
+
+# OS-specific
+Thumbs.db
+.DS_Store
