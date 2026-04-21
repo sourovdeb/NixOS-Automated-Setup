@@ -1,0 +1,19 @@
+[Unit]
+Description=AEON Master Build System - All Phases A-K Auto-Execute
+After=network-online.target graphical-session.target
+Wants=network-online.target
+PartOf=graphical-session.target
+
+[Service]
+Type=oneshot
+User=sourou
+ExecStart=/home/sourou/aeon-build/linux_scripts/99_master_auto_execute.sh
+StandardOutput=journal
+StandardError=journal
+StandardOutputDirectoryMode=0755
+StandardOutputDirectory=%h/aeon-build/logs
+Restart=no
+TimeoutStartSec=7h
+
+[Install]
+WantedBy=graphical-session.target
