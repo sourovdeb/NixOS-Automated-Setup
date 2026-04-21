@@ -126,25 +126,43 @@ ls -la ~/
 
 ## STEP 4: Execute Phase A (20 minutes)
 
-### 4a. Prepare Phase A Script
+### OPTION A: Auto-Execute (Recommended - Hands-Off)
+
+This option runs Phase A automatically after boot without user interaction.
+
 ```bash
-# Via SSH on EndeavourOS:
+# After reboot with nomodeset applied, while in EndeavourOS:
+
+# Install auto-execution service (one-time setup):
+sudo cp ~/aeon-build/linux_scripts/aeon-phase-a.service /etc/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable aeon-phase-a.service
+
+# Phase A will run automatically on next reboot
+# Monitor progress:
+journalctl --user -f -u aeon-phase-a.service
+```
+
+**Why auto-execution?**
+- ✅ Hands-free: Set up once, Phase A runs automatically
+- ✅ Reliable: systemd service ensures proper startup order
+- ✅ Logged: All output saved to `~/aeon-build/logs/phase_a_auto_execute.log`
+- ✅ Recoverable: Completion marker created for verification
+
+See: **INSTALL_AUTO_EXECUTION_SERVICE.md** for full details
+
+---
+
+### OPTION B: Manual Execution (Interactive)
+
+```bash
+# Via SSH or local terminal on EndeavourOS:
 
 # Navigate to build directory:
 cd ~/aeon-build
 
-# If scripts aren't copied yet, download Phase A:
-wget https://raw.githubusercontent.com/sourovdeb/NixOS-Automated-Setup/aeon-writer-os/linux_scripts/01_phase_a_accessibility.sh
-
-# OR manually create the script (copy from PHASE_A_EXECUTION.md)
-
-# Make executable:
+# Make script executable:
 chmod +x 01_phase_a_accessibility.sh
-```
-
-### 4b. Run Phase A
-```bash
-# Via SSH terminal:
 
 # Run Phase A script:
 ./01_phase_a_accessibility.sh
@@ -159,11 +177,29 @@ chmod +x 01_phase_a_accessibility.sh
 # Watch the output for progress
 ```
 
-### 4c. Verify Phase A Success
-```bash
-# After script completes:
+**Why manual execution?**
+- ✅ Full control: Run exactly when you want
+- ✅ Visible output: See each step in real-time
+- ✅ Pauseable: Stop and resume as needed
+- ✅ Debuggable: Easier to troubleshoot if issues arise
 
-# Check logs:
+### 4c. Verify Phase A Success
+
+**If using auto-execution:**
+```bash
+# Check service status:
+systemctl --user status aeon-phase-a.service
+
+# View logs:
+cat ~/aeon-build/logs/phase_a_auto_execute.log
+
+# Verify completion marker:
+ls -la ~/aeon-build/logs/phase_a_complete.marker
+```
+
+**If using manual execution:**
+```bash
+# Check Phase A logs:
 cat ~/aeon-build/logs/01_phase_a_accessibility.log
 
 # Verify Timeshift snapshot:

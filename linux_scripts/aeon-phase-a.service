@@ -1,0 +1,15 @@
+[Unit]
+Description=AEON Phase A Accessibility Auto-Execute (After nomodeset applied)
+After=network-online.target graphical-session.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=sourou
+ExecStart=/home/sourou/aeon-build/linux_scripts/00_auto_execute_phase_a.sh
+StandardOutput=journal
+StandardError=journal
+Restart=no
+
+[Install]
+WantedBy=graphical-session.target
