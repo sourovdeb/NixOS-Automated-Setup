@@ -1,0 +1,114 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Arch Linux Package List — Writer / ADHD-Friendly Setup
+# Install with:  pacman -S --needed - < packages.txt
+# AUR packages (marked [AUR]) require yay or paru.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Base system ───────────────────────────────────────────────────────────────
+base
+base-devel
+linux
+linux-firmware
+efibootmgr
+networkmanager
+sudo
+openssh
+man-db
+man-pages
+
+# ── Boot ──────────────────────────────────────────────────────────────────────
+# (systemd-boot is included with systemd — no extra package needed)
+
+# ── Desktop (Xfce) ───────────────────────────────────────────────────────────
+xfce4
+xfce4-goodies
+lightdm
+lightdm-gtk-greeter
+i3-wm
+i3status
+dmenu
+xorg-server
+xorg-xinit
+
+# ── Fonts ─────────────────────────────────────────────────────────────────────
+ttf-dejavu
+ttf-roboto
+noto-fonts
+noto-fonts-emoji
+ttf-liberation
+
+# ── Audio (PipeWire) ─────────────────────────────────────────────────────────
+pipewire
+pipewire-alsa
+pipewire-pulse
+wireplumber
+
+# ── Writing & research ───────────────────────────────────────────────────────
+obsidian            # [AUR] Primary notes app (Zettelkasten / linked notes)
+zettlr-bin          # [AUR] Markdown long-form writing
+focuswriter         # Distraction-free full-screen editor
+libreoffice-fresh   # Office suite (DOCX, spreadsheets)
+pandoc              # Convert Markdown -> DOCX / PDF / HTML
+aspell
+aspell-en
+languagetool-bin    # [AUR] Grammar checker
+hunspell
+hunspell-en_us
+vim
+
+# ── Publishing ────────────────────────────────────────────────────────────────
+hugo
+git
+
+# ── Podcast / audio processing ───────────────────────────────────────────────
+ffmpeg
+python-openai-whisper  # [AUR] AI speech-to-text transcription
+
+# ── AI / LLM ─────────────────────────────────────────────────────────────────
+ollama-bin          # [AUR] Run local LLMs offline
+
+# ── VS Code ───────────────────────────────────────────────────────────────────
+visual-studio-code-bin  # [AUR] Visual Studio Code (proprietary, with marketplace)
+
+# ── ADHD / focus tools ───────────────────────────────────────────────────────
+gnome-pomodoro      # [AUR] Pomodoro timer
+task                # taskwarrior — task management (CLI)
+timew               # timewarrior — time tracking
+blanket             # Ambient sounds for focus
+libnotify           # Desktop notifications (notify-send)
+dunst               # Notification daemon
+
+# ── Automation / scripting ───────────────────────────────────────────────────
+python
+python-pip
+python-requests
+nodejs
+npm
+wget
+curl
+
+# ── Desktop utilities & browser ──────────────────────────────────────────────
+firefox
+alacritty
+thunar
+file-roller         # Archive manager (replaces xarchiver)
+evince              # PDF reader
+rofi                # Keyboard-driven app launcher
+flameshot           # Screenshot tool
+nm-applet           # NetworkManager tray (inside network-manager-applet pkg)
+network-manager-applet
+
+# ── Accessibility ─────────────────────────────────────────────────────────────
+espeak-ng           # Text-to-speech
+wmctrl              # Window management via scripts
+xdotool             # Keyboard/mouse automation
+
+# ── System utilities ──────────────────────────────────────────────────────────
+htop
+unzip
+p7zip
+ntfs-3g
+nano
+xclip
+rsync
+reflector           # Mirror ranking for pacman
