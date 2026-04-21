@@ -1,0 +1,35 @@
+00:00:00.132903 VirtualBox GUI (separate) 7.2.6 r172322 win.amd64 (Jan 30 2026 17:17:49) release log
+00:00:00.132904 Log opened 2026-04-20T16:31:05.899981100Z
+00:00:00.132905 Build Type: release
+00:00:00.132905 OS Product: Windows 11
+00:00:00.133725 OS Release: 10.0.26100.1301
+00:00:00.133728 OS Service Pack: 
+00:00:00.170873 DMI Product Name: Victus by HP Gaming Laptop 15-fa0xxx
+00:00:00.173724 DMI Product Version:  
+00:00:00.173742 Firmware type: UEFI
+00:00:00.174176 Secure Boot: Disabled
+00:00:00.174186 Host RAM: 16052MB (15.6GB) total, 662MB available
+00:00:00.174190 Executable: C:\Program Files\Oracle\VirtualBox\VirtualBoxVM.exe
+00:00:00.174190 Process ID: 8224
+00:00:00.174190 Package type: WINDOWS_64BITS_GENERIC
+00:00:00.174191 Windows Features:
+00:00:00.174191   Core Isolation (Memory Integrity): ENABLED
+00:00:00.174812 GUI: UIMediumEnumerator: Initial medium-enumeration finished!
+00:00:00.182569 GUI: UIMediumEnumerator: Medium-enumeration started...
+00:00:00.725581 GUI: UIFrameBufferPrivate::performResize: Size=640x480, Using fallback buffer since no source bitmap is provided
+00:00:00.728488 DnD: User Interface Privilege Isolation (UIPI) is running with SECURITY_MANDATORY_HIGH_RID
+00:00:00.728501 DnD: Warning: The VM process' integrity level is higher than most regular processes on the system. This means that drag'n drop most likely will not work with other applications!
+00:00:00.792441 GUI: UIMediumEnumerator: Medium-enumeration finished!
+00:00:00.792470 GUI: UIFrameBufferPrivate::performResize: Size=1024x768, Using fallback buffer since no source bitmap is provided
+00:00:00.808902 GUI: UIFrameBufferPrivate::performResize: Size=1024x768, Using fallback buffer since no source bitmap is provided
+00:00:00.813637 GUI: UISession::sltAdditionsChange: GA state doesn't really changed, still notifying listeners.
+00:00:00.813663 GUI: UIMachineLogicNormal::sltCheckForRequestedVisualStateType: Requested-state=1, Machine-state=6
+00:00:00.823577 GUI: UIMachineLogicNormal::sltCheckForRequestedVisualStateType: Requested-state=1, Machine-state=6
+00:03:21.997296 GUI: UIFrameBufferPrivate::performResize: Size=1024x768, Using fallback buffer since no source bitmap is provided
+00:03:22.173644 GUI: Waiting for session to be unlocked to close Runtime UI..
+00:03:22.254687 GUI: Request to close Runtime UI because session is unlocked.
+00:03:22.254703 GUI: Request for async QApp quit.
+00:03:22.259405 GUI: UICommon: Handling aboutToQuit request..
+00:03:22.906998 ERROR [COM]: aRC=E_UNEXPECTED (0x8000ffff) aIID={c0447716-ff5a-4795-b57a-ecd5fffa18a4} aComponent={SessionWrap} aText={The session is not locked (session state: Unlocked)}, preserve=false aResultDetail=0
+00:03:22.907682 ERROR [COM]: aRC=E_UNEXPECTED (0x8000ffff) aIID={c0447716-ff5a-4795-b57a-ecd5fffa18a4} aComponent={SessionWrap} aText={The session is not locked (session state: Unlocked)}, preserve=false aResultDetail=0
+00:03:22.920445 GUI: UICommon: aboutToQuit request handled!
