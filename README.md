@@ -42,7 +42,13 @@ chmod +x automate_nixos_setup.sh
 ├── instructions.md                 # Complete step-by-step guide
 ├── video_script.md                 # AI narration script for video
 ├── .env                            # WordPress API credentials
-└── README.md                       # This file
+├── README.md                       # This file
+└── Arch_Linux/                     # Arch Linux equivalent setup
+    ├── README.md                   # Arch Linux overview and quick-start
+    ├── automate_arch_setup.sh      # Main installation script (run in Arch live)
+    ├── partition_ssd.sh            # SSD partitioning helper for Arch
+    ├── packages.txt                # Full package list (pacman + AUR)
+    └── post_install.sh             # Post-installation configuration script
 ```
 
 ## 🔧 Prerequisites
